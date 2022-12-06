@@ -1,0 +1,14 @@
+     //show the seats
+            System.out.println("Cinema:");
+            System.out.print("  ");
+            for (int i = 1; i <= numberS; i++) {
+                System.out.print(i + " ");
+            }
+            System.out.println();
+            for (int i = 1; i <= numberR; i++) {
+                System.out.print(i + " ");
+                for (int j = 1; j <= numberS; j++) {
+                    System.out.print("S ");
+                }
+                System.out.println();
+            }
