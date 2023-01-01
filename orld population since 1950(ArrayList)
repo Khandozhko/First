@@ -1,0 +1,31 @@
+import java.util.ArrayList;
+import java.util.Scanner;
+import java.io.File;
+import java.io.FileNotFoundException;
+ 
+ public static void main(String[] args)  {
+ try {
+            Scanner scanner = new Scanner(new File("/Users/(private)/Downloads/dataset_91069.txt"));
+            ArrayList<Integer> yearArr = new ArrayList<Integer>();
+            ArrayList<Long> populArr = new ArrayList<Long>();
+            int year = 0;
+            long maxPop = 0;
+            scanner.nextLine();
+            while (scanner.hasNext()) {
+                String s = scanner.nextLine().replace("\t", " ").replace(",", "");
+                String[] arr = s.split(" ");
+                yearArr.add(Integer.valueOf(arr[0]));
+                populArr.add(Long.valueOf(arr[1]));
+            }
+            for (int i = 0; i < 66; i++) {
+                if (populArr.get(i + 1) - populArr.get(i) > maxPop) {
+                    maxPop = populArr.get(i + 1) - populArr.get(i);
+                    year = yearArr.get(i + 1);
+                }
+            }
+            System.out.println(year);
+            System.out.println("The year: " + year);
+        } catch (FileNotFoundException e) {
+            System.out.println(e);
+        }
+  }
