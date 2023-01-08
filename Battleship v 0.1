@@ -1,0 +1,28 @@
+package battleship;
+
+public class Main {
+
+
+    public static void main(String[] args)  {
+        Field field = new Field();
+        field.print();
+
+        for (Ship ship : Ship.values()) {
+            field.setShip(ship);
+            field.print();
+        }
+        System.out.println("The game starts!");
+        field.print();
+
+        System.out.println("Take a shot!");
+
+        field.TakeShot();
+        field.print();
+        field.printT(field.input);
+
+
+       }
+}
+
+
+
