@@ -29,11 +29,34 @@ public void initField() {
         ships[2] = new Ship(SUBMARINE_SIZE, "Submarine");
         ships[3] = new Ship(CRUISER_SIZE, "Cruiser");
         ships[4] = new Ship(DESTROYER_SIZE, "Destroyer");
-        try {
+
             for (Ship ship : ships) {
                 System.out.printf("Enter the coordinates of the %s (%d cells):\n", ship.getName(), ship.getSize());
                 while (true) {
-                    String[] coordinates = scanner.nextLine().split(" ");
+                    try {   String[] coordinates = scanner.nextLine().split(" ");
+                    int rowBegin = coordinates[0].charAt(0) - 65;
+                    int columnBegin = Integer.parseInt(coordinates[0].substring(1));
+                    int rowEnd = coordinates[1].charAt(0) - 65;
+                    int columnEnd = Integer.parseInt(coordinates[1].substring(1));
+                    if (rowBegin > rowEnd) {
+                        int tmp = rowEnd;
+                        rowEnd = rowBegin;
+                        rowBegin = tmp;
+                    }
+                    if (columnBegin > columnEnd) {
+                        int tmp = columnEnd;
+                        columnEnd = columnBegin;
+                        columnBegin = tmp;
+                    }
+                    if (ship.setCoordinates(rowBegin, columnBegin, rowEnd, columnEnd)) {
+                        if (putShipOnField(rowBegin, columnBegin, rowEnd, columnEnd, ship)) {
+                            System.out.println(this);
+                            break;
+                        }
+                    }
+                } catch (NumberFormatException nfe) {
+                        System.out.println("NumberFormat Exception: invalid input string");
+                    }  String[] coordinates = scanner.nextLine().split(" ");
                     int rowBegin = coordinates[0].charAt(0) - 65;
                     int columnBegin = Integer.parseInt(coordinates[0].substring(1));
                     int rowEnd = coordinates[1].charAt(0) - 65;
@@ -56,36 +79,7 @@ public void initField() {
                     }
                 }
             }
-        } catch (NumberFormatException nfe) {
-            System.out.println("NumberFormat Exception: invalid input string");
         }
-        for (Ship ship : ships) {
-            System.out.printf("Enter the coordinates of the %s (%d cells):\n", ship.getName(), ship.getSize());
-            while (true) {
-                String[] coordinates = scanner.nextLine().split(" ");
-                int rowBegin = coordinates[0].charAt(0) - 65;
-                int columnBegin = Integer.parseInt(coordinates[0].substring(1));
-                int rowEnd = coordinates[1].charAt(0) - 65;
-                int columnEnd = Integer.parseInt(coordinates[1].substring(1));
-                if (rowBegin > rowEnd) {
-                    int tmp = rowEnd;
-                    rowEnd = rowBegin;
-                    rowBegin = tmp;
-                }
-                if (columnBegin > columnEnd) {
-                    int tmp = columnEnd;
-                    columnEnd = columnBegin;
-                    columnBegin = tmp;
-                }
-                if (ship.setCoordinates(rowBegin, columnBegin, rowEnd, columnEnd)) {
-                    if (putShipOnField(rowBegin, columnBegin, rowEnd, columnEnd, ship)) {
-                        System.out.println(this);
-                        break;
-                    }
-                }
-            }
-        }
-    }
     public boolean putShipOnField(int _rowBegin, int _columnBegin, int _rowEnd, int _columnEnd, Ship _ship) {
         for (Ship ship : ships) {
             if (ship != _ship && ship.isPlaced()) {
