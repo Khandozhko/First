@@ -1,0 +1,161 @@
+package readability;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Objects;
+import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static java.lang.Math.max;
+
+public class Main {
+
+
+    public static void main(String[] args) {
+        File file = new File(args[0]);
+        try {
+            Scanner scanner = new Scanner(file);
+            int count = 0;
+            int ageH = 0, ageL = 0;
+            String input = scanner.nextLine();
+            String[] sentence = input.split("[!.?]");
+            int countSentence = sentence.length;
+            String[] words = input.split("[\\s+]");
+            int countWords = words.length;
+
+            System.out.println("Words: " + countWords); //print words
+            System.out.println("Sentences: " + countSentence); //print sentences
+            Pattern pattern = Pattern.compile("[\\S\\w]");
+            Matcher matcher = pattern.matcher(input);
+            while (matcher.find()) {
+                count++;
+            }
+            System.out.println("Characters: " + count); //print Characters
+
+            System.out.println("Syllables: " + countSyllables(input)); //print Syllables;
+
+            System.out.println("Polysyllables: " + countPolly(sentence)); //print Polysyllables;
+
+            System.out.println("Enter the score you want to calculate (ARI, FK, SMOG, CL, all):");
+            Scanner scanner2 = new Scanner(System.in);
+            String inputTwo = scanner2.nextLine();
+            System.out.println();
+            if (Objects.equals(inputTwo, "ARI")) {
+                ari(count, countWords, countSentence, ageH, ageL);
+
+            } else if (Objects.equals(inputTwo, "FK")) {
+                fK(input, countWords, countSentence, ageH, ageL);
+
+            } else if (Objects.equals(inputTwo, "SMOG")) {
+                sMOG(countSentence, ageH, ageL, sentence);
+
+
+            } else if (Objects.equals(inputTwo, "CL")) {
+                cL(countWords, countSentence, ageH, ageL, count);
+
+            } else if (Objects.equals(inputTwo, "all")) {
+                ari(count, countWords, countSentence, ageH, ageL);
+                fK(input, countWords, countSentence, ageH, ageL);
+                sMOG(countSentence, ageH, ageL, sentence);
+                cL(countWords, countSentence, ageH, ageL, count);
+            }
+
+
+        } catch (IOException err) {
+            System.out.println(err.getMessage());
+        }
+    }
+
+    public static int countSyllables(String input) {
+        return max(1, input.toLowerCase()
+                .replaceAll("e\\b", "")
+                .replaceAll("you", "a")
+                .replaceAll("[aeiouy]{2}", "a")
+                .replaceAll(" th ", " a ")
+                .replaceAll(",", "")
+                .replaceAll(" w ", " a ")
+                .replaceAll("[0-9]+", "a")
+                .replaceAll("[^aeiouy]", "")
+                .length() //aiu == 3 syllables, a == 1 syllable
+        );
+    }
+
+
+    protected static int countPolly(String[] sentence) {
+        int polysyllables = 0;
+        for (String sentences : sentence) {
+            String[] words = sentences.trim().split(" ");
+            for (String word : words) {
+                int syllablesInWord = countSyllables(word);
+                if (syllablesInWord > 2) {
+                    polysyllables++;
+                }
+            }
+        }
+        return polysyllables;
+    }
+
+    private static void ari(int count, int countWords, int countSentence, int ageH, int ageL) {
+
+        double score = 4.71 * count / countWords + 0.5 * countWords / countSentence - 21.43;
+
+        for (Grades g : Grades.values()) {
+            if (g.getScore() == Math.ceil(score)) {
+                ageH = g.getAgeH();
+                ageL = g.getAgeL();
+                break;
+            }
+        }
+        System.out.printf("Automated Readability Index: " + Math.round(score) + " about %s-year-olds).\n", Math.max(ageL, ageH));
+
+
+    }
+
+    private static void fK(String input, int countWords, int countSentence, int ageH, int ageL) {
+
+        double scoreFK = 0.39 * ((double) countWords / countSentence) + 11.8 * ((double) countSyllables(input) / countWords) - 15.59;
+
+        for (Grades a : Grades.values()) {
+            if (a.getScore() == Math.ceil(scoreFK)) {
+                ageH = a.getAgeH();
+                ageL = a.getAgeL();
+                break;
+            }
+        }
+        System.out.printf("Flesch–Kincaid readability tests: " + Math.round(scoreFK) + " about %s-year-olds).\n", Math.max(ageL, ageH));
+
+    }
+
+    private static void sMOG(int countSentence, int ageH, int ageL, String[] sentence) {
+
+        double scoreSMOG = 1.043 * Math.sqrt((double) countPolly(sentence) * 30 / countSentence) + 3.1291;
+        for (Grades b : Grades.values()) {
+            if (b.getScore() == Math.ceil(scoreSMOG)) {
+                ageH = b.getAgeH();
+                ageL = b.getAgeL();
+                break;
+            }
+        }
+        System.out.printf("Simple Measure of Gobbledygook: " + Math.round(scoreSMOG) + " about %s-year-olds).\n", Math.max(ageL, ageH));
+
+    }
+
+    private static void cL(int countWords, int countSentence, int ageH, int ageL, int count) {
+
+        double s = ((double) countSentence / countWords) * 100;
+        double l = ((double) count / countWords) * 100;
+        double scoreCL = (0.0588 * l) - (0.296 * s) - 15.8;
+        for (Grades c : Grades.values()) {
+            if (c.getScore() == Math.ceil(scoreCL)) {
+                ageH = c.getAgeH();
+                ageL = c.getAgeL();
+                break;
+            }
+        }
+        System.out.printf("Coleman–Liau index: " + Math.round(scoreCL) + " about %s-year-olds).\n", Math.max(ageL, ageH));
+    }
+
+
+}
+
