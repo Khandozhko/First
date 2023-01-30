@@ -1,0 +1,39 @@
+package readability;
+
+public enum Grades {
+
+        Kindergarten(1,5,6),
+        firstGrade(2,6,7),
+        secondGrade(3, 7,8),
+        thirdGrade(4,8,9),
+        fourthGrade(5,9,10),
+        fifthGrade(6,10,11),
+        sixthGrade(7,11,12),
+        seventhGrade(8,12,13),
+        eighthGrade(9,13,14),
+        ninthGrade(10,14,15),
+        tenthGrade(11,15,16),
+        eleventhGrade(12,16,17),
+        twelfthGrade(13,17,18),
+        collegeStudent(14,18,22);
+        private int score;
+        private int ageL;
+        private int ageH;
+        Grades(int score, int ageL, int ageH) {
+            this.ageL = ageL;
+            this.ageH = ageH;
+            this.score = score;
+        }
+
+        int getAgeL() {
+            return ageL;
+        }
+
+        int getAgeH() {
+                return ageH;
+        }
+        int getScore() {
+            return score;
+        }
+    }
+
