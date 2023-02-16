@@ -1,0 +1,136 @@
+package banking;
+
+import java.util.Scanner;
+
+public abstract class UI {
+
+    static void printMainMenu() {
+        System.out.println("1. Create an account");
+        System.out.println("2. Log into account");
+        System.out.println("0. Exit\n");
+    }
+
+    private static void printLoginMenu() {
+        System.out.println("1. Balance");
+        System.out.println("2. Add income");
+        System.out.println("3. Do transfer");
+        System.out.println("4. Close account");
+        System.out.println("5. Log out");
+        System.out.println("0. Exit\n");
+    }
+
+    private static void createAnAccount(SQLiteDb base) {
+        CreditCard card = new CreditCard(base);
+        System.out.printf("""
+                        Your card has been created
+                        Your card number:
+                        %s
+                        Your card PIN:
+                        %s
+
+                        """
+                , card.getCardNumber(), card.getPIN());
+        printMainMenu();
+        mainMenuGetChoice(base);
+    }
+
+    private static void logIntoAccount(SQLiteDb base) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter your card number:");
+        String cardNumber = scanner.nextLine();
+        System.out.println("Enter your PIN:");
+        String PIN = scanner.nextLine();
+
+        if(!CreditCard.inputNumberChecker(cardNumber)) {
+            System.out.println("Probably you made a mistake in the card number. Please try again!");
+            printLoginMenu();
+            loginMenuGetChoice(base, cardNumber);
+            return;
+        }
+        if(!CreditCard.checkChecksum(cardNumber)) {
+            System.out.println("Probably you made a mistake in the card number. Please try again!");
+            printLoginMenu();
+            loginMenuGetChoice(base, cardNumber);
+            return;
+        }
+
+        if(CreditCard.cardChecker(base.getBaseName(), cardNumber, PIN)) {
+            System.out.println("\nYou have successfully logged in!:");
+            printLoginMenu();
+            loginMenuGetChoice(base, cardNumber);
+        } else {
+            System.out.println("Wrong card number or PIN!:");
+            printMainMenu();
+            mainMenuGetChoice(base);
+        }
+        scanner.close();
+    }
+
+    private static void exit() {
+        System.out.println("Bye!");
+    }
+
+    static void mainMenuGetChoice(SQLiteDb base) {
+        Scanner scanner = new Scanner(System.in);
+        String input = scanner.nextLine();
+        switch (input) {
+            case "1" -> {
+                createAnAccount(base);
+            }
+            case "2" -> {
+                logIntoAccount(base);
+            }
+            case "0" -> {
+                exit();
+            }
+            default -> {
+                System.out.println("Wrong input!");
+            }
+        }
+        scanner.close();
+    }
+
+    static void loginMenuGetChoice(SQLiteDb base, String cardNumber) {
+        Scanner scanner = new Scanner(System.in);
+        String input = scanner.nextLine();
+        switch (input) {
+            case "1" -> {
+                System.out.printf("0f\n", CreditCard.getBalance(base.getBaseName(), cardNumber));
+                printLoginMenu();
+                loginMenuGetChoice(base, cardNumber);
+            }
+            case "2" -> {
+                System.out.println("Enter income:");
+                double income = scanner.nextDouble();
+                CreditCard.addIncome(base.getBaseName(), cardNumber, income);
+                System.out.println("Income was added!\n");
+                printLoginMenu();
+                loginMenuGetChoice(base, cardNumber);
+            }
+            case "3" -> {
+                CreditCard.doTransfer(base.getBaseName(), cardNumber);
+                printLoginMenu();
+                loginMenuGetChoice(base, cardNumber);
+            }
+            case "4" -> {
+                SQLiteDb.deleteFromTable(base.getBaseName(), "card", cardNumber);
+                System.out.println("The account has been closed!");
+                printMainMenu();
+                mainMenuGetChoice(base);
+            }
+            case "5" -> {
+                System.out.println("You have successfully logged out!");
+                printMainMenu();
+                mainMenuGetChoice(base);
+            }
+            case "0" -> {
+                exit();
+            }
+            default -> {
+                System.out.println("Wrong input!");
+            }
+        }
+        scanner.close();
+    }
+
+}
