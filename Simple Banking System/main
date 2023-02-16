@@ -1,0 +1,10 @@
+package banking;
+public class Main {
+
+    public static void main(String[] args){
+        SQLiteDb base = new SQLiteDb(args[1]);
+        CreditCard.repositoryFiller(base.getBaseName());
+        UI.printMainMenu();
+        UI.mainMenuGetChoice(base);
+    }
+}
