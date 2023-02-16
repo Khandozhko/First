@@ -1,0 +1,109 @@
+package banking;
+
+import org.sqlite.SQLiteDataSource;
+
+import java.sql.*;
+
+public class SQLiteDb {
+
+    private final String baseName;
+
+    public SQLiteDb(String baseName) {
+        this.baseName = baseName;
+        createNewDataBase();
+    }
+
+    String getBaseName() {
+        return this.baseName;
+    }
+
+    void createNewDataBase() {
+        Connection conn = connectToDataBase(this.baseName);
+        if (conn != null) {
+            try {
+                Statement statement = conn.createStatement();
+                String sql = """
+                        CREATE TABLE IF NOT EXISTS card(
+                        id INTEGER,
+                        number TEXT,
+                        pin TEXT,
+                        balance INTEGER DEFAULT 0
+                        );""";
+                statement.executeUpdate(sql);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    static Connection connectToDataBase(String baseName) {
+        String url = ("jdbc:sqlite:" + baseName);
+        Connection conn = null;
+        SQLiteDataSource dataSource = new SQLiteDataSource();
+        dataSource.setUrl(url);
+        try {
+            conn = dataSource.getConnection();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return conn;
+    }
+
+    static void insertToDataBase(String baseName, int id, String number, String pin) {
+
+        String sql = "INSERT INTO card(id, number, pin) VALUES(?,?,?)";
+
+        try (Connection conn = connectToDataBase(baseName);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            pstmt.setString(2, number);
+            pstmt.setString(3, pin);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    static void insertToCardsRepository(String baseName, String number) {
+
+        String sql = "INSERT INTO cardRepository (number) VALUES(?)";
+
+        try (Connection conn = connectToDataBase(baseName);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, number);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    static String getNumberFromRepository(String baseName) {
+        String sql = "SELECT * FROM cardRepository ORDER BY ROWID ASC LIMIT 1;";
+        try(Connection conn = connectToDataBase(baseName);
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            try (ResultSet resultSet = pstmt.executeQuery()) {
+                resultSet.next();
+                if(!resultSet.isClosed()) {
+                    return resultSet.getString("number");
+                }
+            }
+        }
+        catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "There is no more numbers in repository.";
+    }
+
+    static void deleteFromTable(String baseName, String tableName, String number) {
+        String sql = String.format("DELETE FROM %s WHERE number = ?;", tableName);
+        try(Connection conn = connectToDataBase(baseName);
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, number);
+            pstmt.executeUpdate();
+        }
+        catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+}
