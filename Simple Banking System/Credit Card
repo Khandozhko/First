@@ -1,0 +1,250 @@
+package banking;
+
+import java.sql.*;
+import java.util.*;
+
+public class CreditCard {
+    private static final int MII = 4;
+    private final String cardNumber;
+    private final String PIN;
+
+
+    public CreditCard(SQLiteDb base) {
+        this.cardNumber = SQLiteDb.getNumberFromRepository(base.getBaseName());
+        this.PIN = generatorOfPIN();
+        SQLiteDb.deleteFromTable(base.getBaseName(), "cardRepository", this.cardNumber);
+        int id = 1;
+        SQLiteDb.insertToDataBase(base.getBaseName(), id, this.cardNumber, this.PIN);
+
+        System.out.println();
+        System.out.println();
+    }
+
+    public String getCardNumber() {
+        return this.cardNumber;
+    }
+
+    public String getPIN() {
+        return this.PIN;
+    }
+
+    public static double getBalance(String baseName, String cardNumber) {
+        String sql = String.format("SELECT * FROM %s WHERE number = ?", "card");
+        try (Connection conn = SQLiteDb.connectToDataBase(baseName);
+             PreparedStatement prstmt = conn.prepareStatement(sql)) {
+            prstmt.setString(1, cardNumber);
+            try (ResultSet resultSet = prstmt.executeQuery()) {
+                resultSet.next();
+                if (!resultSet.isClosed()) {
+                    return resultSet.getInt("balance");
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public static void addIncome(String baseName, String cardNumber, double income) {
+        String sql = String.format("UPDATE %s SET balance = balance + ? WHERE number = ?", "card");
+        try (Connection conn = SQLiteDb.connectToDataBase(baseName);
+             PreparedStatement prstmt = conn.prepareStatement(sql)) {
+            prstmt.setDouble(1, income);
+            prstmt.setString(2, cardNumber);
+            prstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void doTransfer(String baseName, String currentCardNumber) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter card number:");
+        String cardNumber = scanner.nextLine();
+        if (!CreditCard.inputNumberChecker(cardNumber)) {
+            System.out.println("Probably you made a mistake in the card number. Please try again!");
+            return;
+        }
+        if (!CreditCard.checkChecksum(cardNumber)) {
+            System.out.println("Probably you made a mistake in the card number. Please try again!");
+            return;
+        }
+        if (!CreditCard.cardExistCheck(baseName, cardNumber)) {
+            System.out.println("Such a card does not exist.");
+            return;
+        }
+        System.out.println("Enter how much money you want to transfer:");
+        double sumToTransfer = scanner.nextDouble();
+        if (getBalance(baseName, currentCardNumber) >= sumToTransfer) {
+            String sql = "UPDATE card SET balance = balance - ? WHERE number = ?;";
+            try (Connection conn = SQLiteDb.connectToDataBase(baseName);
+                 PreparedStatement prstmt = conn.prepareStatement(sql)) {
+                prstmt.setDouble(1, sumToTransfer);
+                prstmt.setString(2, currentCardNumber);
+                prstmt.executeUpdate();
+                CreditCard.addIncome(baseName, cardNumber, sumToTransfer);
+                System.out.println("Success!\n");
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("Not enough money!");
+        }
+
+
+    }
+
+    //Pre-filling repository of cards.
+    public static void repositoryFiller(String baseName) {
+        List<String> repository = new ArrayList<>();
+        List<String> BIN = new ArrayList<>();
+        Set<String> AI = new HashSet<>();
+        ;
+
+        //Fill out BIN
+        int numberOfBINs = 10;
+        while (BIN.size() < numberOfBINs) {
+            int binNumber = 0;
+            StringBuilder bin = new StringBuilder(Integer.toString(binNumber));
+            while (bin.length() < 5) {
+                bin.insert(0, "0");
+            }
+            BIN.add(String.valueOf(bin));
+        }
+
+        //Fill out AI
+        int numberOfAIs = 10;
+        while (AI.size() < numberOfAIs) {
+            int aiNumber = (int) (Math.random() * 999999999);
+            StringBuilder ai = new StringBuilder(Integer.toString(aiNumber));
+            while (ai.length() < 9) {
+                ai.insert(0, "0");
+            }
+            AI.add(String.valueOf(ai));
+        }
+
+        //Fill out repository
+        String controlledNumber;
+        String number;
+        for (String bin : BIN) {
+            for (String ai : AI) {
+                controlledNumber = String.valueOf(MII).concat(bin).concat(ai);
+                number = controlledNumber.concat(generatorOfCheckSum(controlledNumber));
+                repository.add(number);
+            }
+        }
+        Collections.shuffle(repository);
+        Connection conn = SQLiteDb.connectToDataBase(baseName);
+        if (conn != null) {
+            try {
+                Statement statement = conn.createStatement();
+                String sql = "CREATE TABLE IF NOT EXISTS cardRepository (number TEXT);";
+
+                statement.executeUpdate(sql);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        for (String num : repository) {
+            SQLiteDb.insertToCardsRepository(baseName, num);
+        }
+
+    }
+
+    //PIN generating.
+    private static String generatorOfPIN() {
+        StringBuilder pin = new StringBuilder();
+        int generator = (int) (Math.random() * 9999);
+        pin.append(generator);
+        while (pin.length() < 4) {
+            pin.insert(0, 0);
+        }
+        return pin.toString();
+    }
+
+    //Luhn's algorithm for checksum.
+    private static String generatorOfCheckSum(String controlledNumber) {
+        String[] checksum = controlledNumber.split("");
+        String number;
+        int sum = 0;
+
+        // Multiply odd digits by 2
+        for (int i = 1; i < checksum.length + 1; ++i) {
+            if (i % 2 != 0) {
+                checksum[i - 1] = String.valueOf(Integer.parseInt(checksum[i - 1]) * 2);
+            }
+        }
+
+        //Subtract 9 to numbers over 9
+        for (int i = 0; i < checksum.length; ++i) {
+            if (Integer.parseInt(checksum[i]) > 9) {
+                checksum[i] = String.valueOf(Integer.parseInt(checksum[i]) - 9);
+            }
+        }
+
+        //Sum for checksum
+        for (String num : checksum) {
+            sum += Integer.parseInt(num);
+        }
+        number = 10 - (sum % 10) < 10 ? String.valueOf(10 - (sum % 10)) : "0";
+
+        return number;
+    }
+
+    //Lunh's checker
+    public static boolean checkChecksum(String controlledNumber) {
+        List<String> checksum = new ArrayList<String>(List.of(controlledNumber.split("")));
+        String currentChecksum = checksum.get(checksum.size() - 1);
+        checksum.remove(checksum.size() - 1);
+        String admissibleChecksum = generatorOfCheckSum(checksum.toString()
+                .replace("[", "").replace("]", "")
+                .replace(",", "").replace(" ", "").trim());
+        return currentChecksum.equals(admissibleChecksum);
+    }
+
+    //Checking card number and PIN.
+    public static boolean cardChecker(String baseName, String cardNumber, String PIN) {
+        Connection conn = SQLiteDb.connectToDataBase(baseName);
+        String sql = "SELECT number, pin FROM card WHERE number = ? AND pin = ?;";
+        try (PreparedStatement prstmnt = conn.prepareStatement(sql)) {
+            prstmnt.setString(1, cardNumber);
+            prstmnt.setString(2, PIN);
+
+            try (ResultSet resultSet = prstmnt.executeQuery()) {
+                resultSet.next();
+                if (!resultSet.isClosed()) {
+                    return true;
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public static boolean cardExistCheck(String baseName, String cardNumber) {
+        Connection conn = SQLiteDb.connectToDataBase(baseName);
+        String sql = "SELECT number, pin FROM card WHERE number = ?";
+        try (PreparedStatement prstmnt = conn.prepareStatement(sql)) {
+            prstmnt.setString(1, cardNumber);
+
+            try (ResultSet resultSet = prstmnt.executeQuery()) {
+                resultSet.next();
+                if (!resultSet.isClosed()) {
+                    return true;
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public static boolean inputNumberChecker(String input) {
+        return input.matches("[0-9]{16}");
+    }
+}
